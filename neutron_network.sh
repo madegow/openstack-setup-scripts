@@ -152,11 +152,33 @@ systemctl enable openvswitch.service
 
 systemctl start openvswitch.service
 
-echo "Please  configure br-ex configuration manually\n"
+ovs-vsctl add-br br-ex
+
+echo "Please enter a network interface name which connected to external network examples(ethx/ensx etc...)\n"
+read INTERFACE_NAME
+ovs-vsctl add-port br-ex $INTERFACE_NAME
+
+ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
+
+cp /usr/lib/systemd/system/neutron-openvswitch-agent.service \
+	/usr/lib/systemd/system/neutron-openvswitch-agent.service.orig
+	
+sed -i 's,plugins/openvswitch/ovs_neutron_plugin.ini,plugin.ini,g' \
+	/usr/lib/systemd/system/neutron-openvswitch-agent.service
+
+systemctl enable neutron-openvswitch-agent.service \
+	neutron-l3-agent.service \
+	neutron-dhcp-agent.service \
+	neutron-metadata-agent.service \
+	neutron-ovs-cleanup.service
+	
+systemctl start neutron-openvswitch-agent.service \
+	neutron-l3-agent.service \
+	neutron-dhcp-agent.service \
+	neutron-metadata-agent.service \
+	neutron-ovs-cleanup.service
 
 
-#source admin-openrc.sh
+source admin-openrc.sh
 
-#nova service-list
-
-#nova image-list
+neutron agent-list
